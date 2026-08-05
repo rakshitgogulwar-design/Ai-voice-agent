@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InterviewPro AI — Enterprise Siri-Style Voice Mock Interviewer</title>
+  <meta name="description" content="Professional 1-on-1 executive AI voice interviewer with real-time speech synthesis, hands-free voice recognition, active Siri visualizer orb, and 360-degree career diagnostics.">
+  
+  <!-- Google Fonts & CDN Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --bg-surface: #0f172a;
+      --bg-card: rgba(30, 41, 59, 0.7);
+      --bg-card-hover: rgba(51, 65, 85, 0.8);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(99, 102, 241, 0.3);
+      --brand-primary: #6366f1;
+      --brand-secondary: #818cf8;
+      --brand-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+      --siri-cyan: #06b6d4;
+      --siri-purple: #8b5cf6;
+      --siri-pink: #ec4899;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-sub: #cbd5e1;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-heading: 'Space Grotesk', sans-serif;
+      --font-mono: 'Fira Code', monospace;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.25);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* Ambient Background Glow */
+    .ambient-glow {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1000px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.08) 40%, rgba(7, 9, 14, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border-subtle);
+      backdrop-filter: blur(12px);
+      background: rgba(15, 23, 42, 0.6);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: var(--brand-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.2rem;
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+    }
+    .nav-badge {
+      font-size: 0.75rem;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--brand-secondary);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .btn-nav-primary {
+      background: var(--brand-gradient);
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+    .btn-nav-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+
+    /* Views */
+    .view-section { display: none; width: 100%; animation: fadeIn 0.4s ease; }
+    .view-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Home Hero View */
+    .hero-section {
+      padding: 4rem 2rem 3rem;
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .hero-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 30px;
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      color: var(--siri-cyan);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+    .hero-title {
+      font-family: var(--font-heading);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.03em;
+    }
+    .hero-title span {
+      background: var(--brand-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 680px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-cta-group {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+    .btn-lg-primary {
+      background: var(--brand-gradient);
+      color: #fff;
+      border: none;
+      padding: 16px 36px;
+      border-radius: 30px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.25s ease;
+      box-shadow: var(--shadow-glow);
+    }
+    .btn-lg-primary:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 0 40px rgba(99, 102, 241, 0.5);
+    }
+    .btn-lg-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 16px 32px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+    .btn-lg-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Quick Voice Test Bar */
+    .voice-test-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 2rem;
+      max-width: 720px;
+      margin: 0 auto 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      backdrop-filter: blur(16px);
+    }
+    .voice-test-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+    }
+    .mini-orb {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--siri-cyan), var(--brand-primary));
+      box-shadow: 0 0 15px var(--siri-cyan);
+      animation: siriPulse 2s infinite ease-in-out;
+    }
+    @keyframes siriPulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.15); opacity: 1; } }
+
+    /* Features Grid */
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      padding: 0 2rem 4rem;
+    }
+    .card-feature {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+    }
+    .card-feature:hover {
+      border-color: var(--border-accent);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Executive Personas Showcase */
+    .personas-section {
+      padding: 3rem 2rem;
+      background: rgba(15, 23, 42, 0.4);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .section-desc {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .persona-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+    }
+    .persona-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .persona-card:hover, .persona-card.selected {
+      border-color: var(--brand-primary);
+      background: rgba(99, 102, 241, 0.1);
+      box-shadow: 0 0 25px rgba(99, 102, 241, 0.25);
+    }
+    .persona-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      margin: 0 auto 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+    .persona-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 2px; }
+    .persona-role { font-size: 0.85rem; color: var(--brand-secondary); margin-bottom: 8px; font-weight: 600; }
+    .persona-tag { font-size: 0.75rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 4px 10px; border-radius: 20px; display: inline-block; }
+
+    /* Setup Wizard View */
+    .setup-container {
+      max-width: 800px;
+      margin: 3rem auto;
+      padding: 0 1.5rem;
+    }
+    .setup-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--brand-primary);
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+    }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .chip-btn {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chip-btn.selected {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: var(--brand-primary);
+      color: var(--brand-secondary);
+      font-weight: 600;
+    }
+
+    /* 1-on-1 Interactive Video & Voice Studio View */
+    .studio-view {
+      display: none;
+      flex-direction: column;
+      height: calc(100vh - 75px);
+      padding: 1.5rem 2rem;
+      gap: 1.25rem;
+    }
+    .studio-view.active { display: flex; }
+    
+    .studio-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.5rem;
+    }
+    .interviewer-status {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+    .round-indicator {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: var(--brand-secondary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    /* Studio Main Stage */
+    .studio-stage {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.25rem;
+      flex: 1;
+      min-height: 0;
+    }
+    @media (max-width: 1024px) {
+      .studio-stage { grid-template-columns: 1fr; }
+      .candidate-sidebar { display: none; }
+    }
+
+    /* AI Executive Video Feed & Visualizer */
+    .ai-video-card {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Glowing Siri Visualizer Canvas */
+    .siri-orb-wrapper {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    canvas#siriOrbCanvas {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+    }
+    .orb-state-tag {
+      position: absolute;
+      bottom: -10px;
+      background: rgba(7, 9, 14, 0.85);
+      border: 1px solid var(--border-accent);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--siri-cyan);
+      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+    }
+
+    /* Live Subtitles & Question Display */
+    .caption-box {
+      background: rgba(7, 9, 14, 0.75);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1.75rem;
+      max-width: 800px;
+      width: 100%;
+      text-align: center;
+      margin-top: 1rem;
+      backdrop-filter: blur(12px);
+    }
+    .caption-question {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .caption-live-transcript {
+      font-size: 0.95rem;
+      color: var(--siri-cyan);
+      font-style: italic;
+      min-height: 24px;
+    }
+
+    /* Candidate Video Sidebar & Metrics */
+    .candidate-sidebar {
+      display: flex;
+      flex-direction: flex-direction;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .webcam-box {
+      background: #000;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      height: 220px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    video#userWebcam {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+    .webcam-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    .live-metrics-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .metric-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+    }
+    .metric-value { font-family: var(--font-mono); font-weight: 600; color: var(--brand-secondary); }
+
+    /* Studio Controls Footer */
+    .studio-controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem 1.5rem;
+      gap: 1rem;
+    }
+    .control-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 1px solid var(--border-subtle);
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text-main);
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .control-btn:hover { background: rgba(255, 255, 255, 0.1); }
+    .control-btn.active { background: var(--brand-primary); border-color: var(--brand-primary); color: #fff; box-shadow: 0 0 15px rgba(99, 102, 241, 0.5); }
+    .control-btn.danger { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: var(--danger); }
+    .control-btn.danger:hover { background: var(--danger); color: #fff; }
+
+    /* Speech Input Container */
+    .input-mode-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      max-width: 600px;
+    }
+    .studio-text-input {
+      flex: 1;
+      background: rgba(7, 9, 14, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 25px;
+      padding: 12px 20px;
+      color: var(--text-main);
+      font-size: 0.9rem;
+      font-family: var(--font-sans);
+    }
+    .studio-text-input:focus { outline: none; border-color: var(--brand-primary); }
+
+    /* Report View */
+    .report-container {
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 0 1.5rem 4rem;
+    }
+    .report-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      backdrop-filter: blur(16px);
+    }
+    .report-header {
+      text-align: center;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 2rem;
+      margin-bottom: 2rem;
+    }
+    .score-circle-wrapper {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      margin: 1.5rem auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .score-circle-wrapper svg { transform: rotate(-90deg); }
+    .score-number {
+      position: absolute;
+      font-family: var(--font-heading);
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .verdict-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 24px;
+      border-radius: 30px;
+      font-weight: 700;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .verdict-badge.strong-hire { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); }
+
+    .scores-grid-6 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      margin-bottom: 2.5rem;
+    }
+    .score-mini-box {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem 1rem;
+      text-align: center;
+    }
+    .score-val { font-family: var(--font-heading); font-size: 1.75rem; font-weight: 700; color: var(--brand-secondary); margin-bottom: 2px; }
+    .score-lbl { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .report-section-title {
+      font-family: var(--font-heading);
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .feedback-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 2rem; }
+    .feedback-item {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+
+    /* Print Styles */
+    @media print {
+      body { background: #fff; color: #000; }
+      .navbar, .btn-lg-primary, .studio-controls-bar { display: none !important; }
+      .report-card { border: none; box-shadow: none; background: #fff; color: #000; }
+      .score-val { color: #4338ca; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-glow"></div>
+
+  <div class="app-container">
+
+    <!-- Top Executive Navigation -->
+    <nav class="navbar">
+      <div class="brand-logo">
+        <div class="brand-icon"><i class="fa-solid fa-brain"></i></div>
+        InterviewPro AI
+        <span class="nav-badge">Voice Studio Pro 3.0</span>
+      </div>
+      <div class="nav-actions">
+        <button class="btn-nav-primary" onclick="showSetupView()">
+          <i class="fa-solid fa-microphone"></i> Start Voice Interview
+        </button>
+      </div>
+    </nav>
+
+    <!-- VIEW 1: HERO HOME PAGE -->
+    <div id="homeView" class="view-section active">
+      <section class="hero-section">
+        <div class="hero-chip">
+          <i class="fa-solid fa-sparkles"></i> Executive 1-on-1 Voice Agent
+        </div>
+        <h1 class="hero-title">
+          Master Your Career with <span>Siri-Style AI Voice</span> Mock Interviews
+        </h1>
+        <p class="hero-subtitle">
+          Engage in ultra-realistic 1-on-1 vocal interviews with executive personas from Google, Goldman Sachs, Amazon, and Meta. Receive instant turn-by-turn speech feedback, filler-word analysis, and a 360° readiness score.
+        </p>
+        <div class="hero-cta-group">
+          <button class="btn-lg-primary" onclick="showSetupView()">
+            <i class="fa-solid fa-circle-play"></i> Launch Voice Interview Studio
+          </button>
+          <button class="btn-lg-secondary" onclick="scrollToPersonas()">
+            <i class="fa-solid fa-user-tie"></i> Explore Interviewer Personas
+          </button>
+        </div>
+
+        <!-- Quick Interactive Voice Test -->
+        <div class="voice-test-bar">
+          <div class="voice-test-info">
+            <div class="mini-orb"></div>
+            <div>
+              <strong style="font-size:0.95rem; display:block;">Test AI Voice Engine</strong>
+              <span style="font-size:0.8rem; color:var(--text-muted);">Listen to a sample executive question in browser voice</span>
+            </div>
+          </div>
+          <button class="btn-nav-primary" onclick="testVoiceSynthesis()" style="padding: 8px 18px; font-size: 0.85rem;">
+            <i class="fa-solid fa-volume-high"></i> Play Sample Voice
+          </button>
+        </div>
+      </section>
+
+      <!-- Key Capabilities Grid -->
+      <div class="grid-container">
+        <div class="card-feature">
+          <div class="card-icon" style="background:rgba(6,182,212,0.15); color:var(--siri-cyan);">
+            <i class="fa-solid fa-microphone-lines"></i>
+          </div>
+          <h3 style="font-size:1.15rem; margin-bottom:8px;">Hands-Free Siri Voice Loop</h3>
+          <p style="color:var(--text-muted); font-size:0.9rem;">
+            Speak naturally like a real phone call or video interview. The voice agent listens, transcribes live, and responds in real time.
+          </p>
+        </div>
+        <div class="card-feature">
+          <div class="card-icon" style="background:rgba(99,102,241,0.15); color:var(--brand-secondary);">
+            <i class="fa-solid fa-video"></i>
+          </div>
+          <h3 style="font-size:1.15rem; margin-bottom:8px;">Candidate Video Studio</h3>
+          <p style="color:var(--text-muted); font-size:0.9rem;">
+            Optional webcam integration so you can practice eye contact, posture, and facial composure while answering complex questions.
+          </p>
+        </div>
+        <div class="card-feature">
+          <div class="card-icon" style="background:rgba(16,185,129,0.15); color:var(--success);">
+            <i class="fa-solid fa-chart-pie"></i>
+          </div>
+          <h3 style="font-size:1.15rem; margin-bottom:8px;">Filler Word & Pace Analytics</h3>
+          <p style="color:var(--text-muted); font-size:0.9rem;">
+            Track filler words ("um", "uh", "like") and monitor your speaking speed (WPM) to ensure articulate, executive delivery.
+          </p>
+        </div>
+      </div>
+
+      <!-- Executive Personas Section -->
+      <section class="personas-section" id="personasSection">
+        <h2 class="section-title">Select Your Executive Interviewer</h2>
+        <p class="section-desc">Choose from elite industry leaders customized to your target domain and company standards.</p>
+        
+        <div class="personas-grid">
+          <div class="persona-card selected" onclick="selectPersona(this, 'Sarah Chen', 'VP of Engineering', 'Google', 'JR')">
+            <div class="persona-avatar" style="background: linear-gradient(135deg, #6366f1, #a855f7);">SC</div>
+            <div class="persona-name">Sarah Chen</div>
+            <div class="persona-role">VP of Engineering · Google</div>
+            <div class="persona-tag">Technical DSA & System Design</div>
+          </div>
+          <div class="persona-card" onclick="selectPersona(this, 'Marcus Vance', 'Managing Director', 'Goldman Sachs', 'MV')">
+            <div class="persona-avatar" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">MV</div>
+            <div class="persona-name">Marcus Vance</div>
+            <div class="persona-role">Managing Director · Goldman Sachs</div>
+            <div class="persona-tag">Finance, Strategy & Rigor</div>
+          </div>
+          <div class="persona-card" onclick="selectPersona(this, 'Elena Rostova', 'Senior Product Director', 'Meta', 'ER')">
+            <div class="persona-avatar" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">ER</div>
+            <div class="persona-name">Elena Rostova</div>
+            <div class="persona-role">Product Director · Meta</div>
+            <div class="persona-tag">Product Sense & STAR Leadership</div>
+          </div>
+          <div class="persona-card" onclick="selectPersona(this, 'Dr. Aris Thorne', 'Principal AI Architect', 'OpenAI', 'AT')">
+            <div class="persona-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">AT</div>
+            <div class="persona-name">Dr. Aris Thorne</div>
+            <div class="persona-role">Principal AI Architect · OpenAI</div>
+            <div class="persona-tag">Deep Learning & Machine Learning</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- VIEW 2: SETUP WIZARD -->
+    <div id="setupView" class="view-section">
+      <div class="setup-container">
+        <button onclick="showHomeView()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; margin-bottom:1.5rem; display:flex; align-items:center; gap:8px; font-weight:600;">
+          <i class="fa-solid fa-arrow-left"></i> Back to Overview
+        </button>
+
+        <div class="setup-card">
+          <h2 style="font-family:var(--font-heading); font-size:1.8rem; margin-bottom:0.5rem;">Configure Your 1-on-1 Session</h2>
+          <p style="color:var(--text-muted); margin-bottom:2rem;">Customize your target role, company, and voice options before entering the video studio.</p>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Target Company</label>
+              <input type="text" id="targetCompany" class="form-input" value="Google" placeholder="e.g. Google, Amazon, McKinsey...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target Role</label>
+              <input type="text" id="targetRole" class="form-input" value="Senior Software Engineer" placeholder="e.g. Software Engineer, PM...">
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Experience Level</label>
+              <select id="expLevel" class="form-select">
+                <option value="Fresher / Student">Student / Entry Level (0-2 yrs)</option>
+                <option value="Mid-Level" selected>Mid-Level Professional (2-5 yrs)</option>
+                <option value="Senior Lead">Senior / Lead (5-8 yrs)</option>
+                <option value="Executive Director">Executive / Director (8+ yrs)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Interviewer Voice Persona</label>
+              <select id="voiceSelect" class="form-select">
+                <option value="default">Native Natural Browser Voice (Auto)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Interview Category</label>
+            <div class="chip-group" id="categoryChips">
+              <button class="chip-btn selected" onclick="toggleChip(this)">Technical & Coding</button>
+              <button class="chip-btn" onclick="toggleChip(this)">System Architecture</button>
+              <button class="chip-btn" onclick="toggleChip(this)">Behavioral (STAR)</button>
+              <button class="chip-btn" onclick="toggleChip(this)">HR & Culture Fit</button>
+              <button class="chip-btn" onclick="toggleChip(this)">Product & Design</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Paste Resume / Key Experience (Optional for Tailored Questions)</label>
+            <textarea id="resumeInput" class="form-textarea" rows="3" placeholder="Paste bullet points from your resume or key projects to get customized deep-dive questions..."></textarea>
+          </div>
+
+          <button class="btn-lg-primary" style="width:100%; justify-content:center; margin-top:1rem;" onclick="startStudioSession()">
+            <i class="fa-solid fa-video"></i> Enter 1-on-1 Voice Studio
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: 1-ON-1 INTERACTIVE VIDEO & VOICE STUDIO -->
+    <div id="studioView" class="view-section studio-view">
+      <!-- Studio Top Status Header -->
+      <div class="studio-header">
+        <div class="interviewer-status">
+          <div class="status-dot"></div>
+          <div>
+            <strong id="studioInterviewerName" style="font-size:1rem; display:block;">Sarah Chen</strong>
+            <span id="studioInterviewerTitle" style="font-size:0.8rem; color:var(--text-muted);">VP of Engineering · Google</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span class="round-indicator" id="studioRoundBadge">Round 1 — Candidate Introduction</span>
+          <button class="control-btn danger" style="width:auto; height:36px; padding:0 14px; border-radius:20px; font-size:0.85rem; font-weight:600;" onclick="endInterviewSession()">
+            End Interview
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Stage -->
+      <div class="studio-stage">
+        <!-- AI Interviewer Video Box with Glowing Siri Orb Canvas -->
+        <div class="ai-video-card">
+          <div class="siri-orb-wrapper">
+            <canvas id="siriOrbCanvas" width="220" height="220"></canvas>
+            <div class="orb-state-tag" id="orbStateTag">IDLE</div>
+          </div>
+
+          <div class="caption-box">
+            <div class="caption-question" id="captionQuestion">
+              Initializing executive interview session...
+            </div>
+            <div class="caption-live-transcript" id="liveTranscript">
+              [Click 'Start Speaking' or use hands-free mic input...]
+            </div>
+          </div>
+        </div>
+
+        <!-- Candidate Video & Analytics Sidebar -->
+        <div class="candidate-sidebar">
+          <!-- Candidate Webcam Box -->
+          <div class="webcam-box">
+            <video id="userWebcam" autoplay muted playsinline></video>
+            <div class="webcam-placeholder" id="webcamPlaceholder">
+              <i class="fa-solid fa-user-slash" style="font-size:2rem;"></i>
+              <span>Camera Off</span>
+            </div>
+          </div>
+
+          <!-- Live Vocal Analytics -->
+          <div class="live-metrics-card">
+            <h4 style="font-size:0.9rem; font-weight:700; color:var(--text-main); text-transform:uppercase; letter-spacing:0.05em;">Live Speech Analytics</h4>
+            
+            <div class="metric-row">
+              <span style="color:var(--text-muted);"><i class="fa-solid fa-gauge"></i> Speaking Speed</span>
+              <span class="metric-value" id="metricWPM">135 WPM</span>
+            </div>
+            <div class="metric-row">
+              <span style="color:var(--text-muted);"><i class="fa-solid fa-triangle-exclamation"></i> Filler Words</span>
+              <span class="metric-value" id="metricFillers" style="color:var(--warning);">0 detected</span>
+            </div>
+            <div class="metric-row">
+              <span style="color:var(--text-muted);"><i class="fa-solid fa-volume-high"></i> Vocal Confidence</span>
+              <span class="metric-value" id="metricConfidence" style="color:var(--success);">High (92%)</span>
+            </div>
+            <div class="metric-row">
+              <span style="color:var(--text-muted);"><i class="fa-solid fa-clock"></i> Response Time</span>
+              <span class="metric-value" id="metricResponseTimer">00:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Studio Toolbar Controls -->
+      <div class="studio-controls-bar">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button class="control-btn" id="micToggleBtn" onclick="toggleMicrophone()" title="Toggle Microphone">
+            <i class="fa-solid fa-microphone"></i>
+          </button>
+          <button class="control-btn" id="cameraToggleBtn" onclick="toggleWebcam()" title="Toggle Camera">
+            <i class="fa-solid fa-video-slash"></i>
+          </button>
+          <button class="control-btn" id="voiceMuteBtn" onclick="toggleAIVoiceMute()" title="Mute AI Voice">
+            <i class="fa-solid fa-volume-high"></i>
+          </button>
+        </div>
+
+        <div class="input-mode-container">
+          <input type="text" id="manualTextInput" class="studio-text-input" placeholder="Type answer manually (or speak using microphone)..." onkeydown="handleInputKeydown(event)">
+          <button class="btn-nav-primary" style="padding:10px 20px;" onclick="submitCandidateResponse()">
+            Send <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+
+        <button class="btn-lg-primary" style="padding:10px 20px; font-size:0.9rem;" onclick="triggerNextAIQuestion()">
+          Next Question <i class="fa-solid fa-forward"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- VIEW 4: 360 EXECUTIVE DIAGNOSTIC REPORT -->
+    <div id="reportView" class="view-section">
+      <div class="report-container">
+        <button onclick="showHomeView()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; margin-bottom:1.5rem; display:flex; align-items:center; gap:8px; font-weight:600;">
+          <i class="fa-solid fa-arrow-left"></i> Return to Home
+        </button>
+
+        <div class="report-card">
+          <div class="report-header">
+            <h2 style="font-family:var(--font-heading); font-size:2rem; margin-bottom:0.25rem;">Executive Performance Scorecard</h2>
+            <p style="color:var(--text-muted);" id="reportMetaSubtitle">Google · Senior Software Engineer · Voice Interview Session</p>
+
+            <div class="score-circle-wrapper">
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <circle cx="70" cy="70" r="58" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12"/>
+                <circle id="reportScoreCircle" cx="70" cy="70" r="58" fill="none" stroke="url(#gradientScore)" stroke-width="12" stroke-linecap="round" stroke-dasharray="364" stroke-dashoffset="91"/>
+                <defs>
+                  <linearGradient id="gradientScore" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#06b6d4"/>
+                    <stop offset="100%" stop-color="#6366f1"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div class="score-number" id="reportScoreNum">88</div>
+            </div>
+
+            <div class="verdict-badge strong-hire" id="reportVerdictBadge">
+              <i class="fa-solid fa-circle-check"></i> STRONG HIRE
+            </div>
+          </div>
+
+          <!-- 6 Score Cards -->
+          <div class="scores-grid-6">
+            <div class="score-mini-box">
+              <div class="score-val" id="repTechScore">86</div>
+              <div class="score-lbl">Technical Depth</div>
+            </div>
+            <div class="score-mini-box">
+              <div class="score-val" id="repCommScore">92</div>
+              <div class="score-lbl">Communication</div>
+            </div>
+            <div class="score-mini-box">
+              <div class="score-val" id="repStarScore">84</div>
+              <div class="score-lbl">STAR Structure</div>
+            </div>
+            <div class="score-mini-box">
+              <div class="score-val" id="repPaceScore">90</div>
+              <div class="score-lbl">Vocal Pace & Cadence</div>
+            </div>
+            <div class="score-mini-box">
+              <div class="score-val" id="repProbScore">88</div>
+              <div class="score-lbl">Problem Solving</div>
+            </div>
+            <div class="score-mini-box">
+              <div class="score-val" id="repCultureScore">94</div>
+              <div class="score-lbl">Executive Fit</div>
+            </div>
+          </div>
+
+          <!-- Detailed Key Strengths -->
+          <div style="margin-bottom:2rem;">
+            <h3 class="report-section-title" style="color:var(--success);">
+              <i class="fa-solid fa-circle-check"></i> Key Vocal & Technical Strengths
+            </h3>
+            <ul class="feedback-list">
+              <li class="feedback-item">
+                <i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i>
+                <div>
+                  <strong>Articulate Technical Explanations:</strong> Clear structural breakdown when describing system components and concurrency patterns.
+                </div>
+              </li>
+              <li class="feedback-item">
+                <i class="fa-solid fa-check" style="color:var(--success); margin-top:2px;"></i>
+                <div>
+                  <strong>Minimal Filler Words:</strong> Maintained executive vocal poise with less than 2 filler words per minute.
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Areas for Executive Growth -->
+          <div style="margin-bottom:2rem;">
+            <h3 class="report-section-title" style="color:var(--warning);">
+              <i class="fa-solid fa-triangle-exclamation"></i> Actionable Growth Areas
+            </h3>
+            <ul class="feedback-list">
+              <li class="feedback-item">
+                <i class="fa-solid fa-bolt" style="color:var(--warning); margin-top:2px;"></i>
+                <div>
+                  <strong>Quantify Impact in STAR Stories:</strong> State exact percentages and metrics (e.g. "reduced latency by 35%") during behavioral answers.
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:3rem;">
+            <button class="btn-lg-secondary" onclick="window.print()">
+              <i class="fa-solid fa-print"></i> Download Executive PDF
+            </button>
+            <button class="btn-lg-primary" onclick="showSetupView()">
+              <i class="fa-solid fa-rotate-right"></i> Start New Practice Session
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JAVASCRIPT: ENTERPRISE VOICE & SPEECH ENGINE -->
+  <script>
+    // System State Variables
+    let currentInterviewer = {
+      name: 'Sarah Chen',
+      role: 'VP of Engineering · Google',
+      avatar: 'SC'
+    };
+    let selectedVoice = null;
+    let availableVoices = [];
+    let isMicActive = false;
+    let isWebcamActive = false;
+    let isAIVoiceMuted = false;
+    let orbState = 'IDLE'; // IDLE, SPEAKING, LISTENING, THINKING
+    let currentQuestionIndex = 0;
+    let sessionTranscripts = [];
+    let speechRecognition = null;
+    let isRecognizing = false;
+    let silenceTimer = null;
+    let fillerWordCount = 0;
+    let wordCountTotal = 0;
+    let animationFrameId = null;
+
+    // Interview Questions Database
+    const EXECUTIVE_QUESTIONS = [
+      "Welcome! I'm Sarah Chen, VP of Engineering. Let's begin — could you walk me through your professional background and highlight a major engineering victory?",
+      "Excellent background. Can you describe an architectural trade-off you had to make in a recent high-scale project?",
+      "Walk me through how you would design a globally distributed real-time notification engine with sub-50ms SLA.",
+      "Tell me about a time you faced technical disagreement with a principal architect or product lead. How did you align the team?",
+      "What is your strategy for maintaining code quality and reducing technical debt while pushing tight production feature deadlines?",
+      "Do you have any executive-level questions for me regarding our engineering culture or roadmap?"
+    ];
+
+    // INITIALIZATION
+    window.addEventListener('DOMContentLoaded', () => {
+      initSpeechSynthesis();
+      initSpeechRecognition();
+      initSiriOrbCanvas();
+    });
+
+    // 1. NAVIGATION & VIEWS
+    function showView(viewId) {
+      document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+      const target = document.getElementById(viewId);
+      if (target) target.classList.add('active');
+      window.scrollTo(0, 0);
+    }
+    function showHomeView() { showView('homeView'); stopWebcam(); }
+    function showSetupView() { showView('setupView'); }
+    function scrollToPersonas() {
+      document.getElementById('personasSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function selectPersona(cardEl, name, title, company, avatar) {
+      document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('selected'));
+      cardEl.classList.add('selected');
+      currentInterviewer = { name, role: `${title} · ${company}`, avatar };
+    }
+
+    function toggleChip(btn) { btn.classList.toggle('selected'); }
+
+    // 2. SPEECH SYNTHESIS (TTS) ENGINE
+    function initSpeechSynthesis() {
+      if ('speechSynthesis' in window) {
+        const loadVoices = () => {
+          availableVoices = window.speechSynthesis.getVoices();
+          const select = document.getElementById('voiceSelect');
+          select.innerHTML = '<option value="default">Native Natural Browser Voice (Auto)</option>';
+          availableVoices.forEach((v, i) => {
+            if (v.lang.startsWith('en')) {
+              const opt = document.createElement('option');
+              opt.value = i;
+              opt.textContent = `${v.name} (${v.lang})`;
+              select.appendChild(opt);
+            }
+          });
+        };
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+          speechSynthesis.onvoiceschanged = loadVoices;
+        }
+      }
+    }
+
+    function testVoiceSynthesis() {
+      speakAIText("Hello! I am your AI Executive Interviewer. My voice engine is fully calibrated and ready for your 1-on-1 interview session.");
+    }
+
+    function speakAIText(text, callback) {
+      if (isAIVoiceMuted || !('speechSynthesis' in window)) {
+        if (callback) callback();
+        return;
+      }
+
+      window.speechSynthesis.cancel(); // Clear queue
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      const voiceIdx = document.getElementById('voiceSelect').value;
+      if (voiceIdx !== 'default' && availableVoices[voiceIdx]) {
+        utterance.voice = availableVoices[voiceIdx];
+      }
+
+      utterance.onstart = () => {
+        setOrbState('SPEAKING');
+      };
+      utterance.onend = () => {
+        setOrbState('LISTENING');
+        if (isMicActive) startListening();
+        if (callback) callback();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // 3. SPEECH RECOGNITION (STT) ENGINE
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        speechRecognition = new SpeechRecognition();
+        speechRecognition.continuous = true;
+        speechRecognition.interimResults = true;
+        speechRecognition.lang = 'en-US';
+
+        speechRecognition.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          document.getElementById('liveTranscript').textContent = `Candidate: "${transcript}"`;
+          document.getElementById('manualTextInput').value = transcript;
+          
+          detectFillerWords(transcript);
+
+          // Reset silence timer for auto-submit
+          clearTimeout(silenceTimer);
+          silenceTimer = setTimeout(() => {
+            if (transcript.trim().length > 5) {
+              submitCandidateResponse();
+            }
+          }, 1800);
+        };
+
+        speechRecognition.onerror = (err) => {
+          console.warn("Speech Recognition info:", err);
+        };
+      }
+    }
+
+    function startListening() {
+      if (speechRecognition && !isRecognizing) {
+        try {
+          speechRecognition.start();
+          isRecognizing = true;
+          setOrbState('LISTENING');
+        } catch (e) {}
+      }
+    }
+
+    function stopListening() {
+      if (speechRecognition && isRecognizing) {
+        speechRecognition.stop();
+        isRecognizing = false;
+      }
+    }
+
+    function detectFillerWords(text) {
+      const fillers = ['um', 'uh', 'like', 'basically', 'you know', 'actually'];
+      const words = text.toLowerCase().split(/\s+/);
+      let count = 0;
+      words.forEach(w => {
+        if (fillers.includes(w)) count++;
+      });
+      fillerWordCount += count;
+      document.getElementById('metricFillers').textContent = `${fillerWordCount} detected`;
+    }
+
+    // 4. STUDIO INTERVIEW LOGIC
+    function startStudioSession() {
+      const company = document.getElementById('targetCompany').value || 'Google';
+      const role = document.getElementById('targetRole').value || 'Senior Software Engineer';
+      
+      document.getElementById('studioInterviewerName').textContent = currentInterviewer.name;
+      document.getElementById('studioInterviewerTitle').textContent = `${currentInterviewer.role}`;
+      document.getElementById('reportMetaSubtitle').textContent = `${company} · ${role} · Executive Voice Interview`;
+
+      currentQuestionIndex = 0;
+      sessionTranscripts = [];
+      fillerWordCount = 0;
+
+      showView('studioView');
+      askCurrentQuestion();
+    }
+
+    function askCurrentQuestion() {
+      const qText = EXECUTIVE_QUESTIONS[currentQuestionIndex] || EXECUTIVE_QUESTIONS[0];
+      document.getElementById('captionQuestion').textContent = qText;
+      document.getElementById('liveTranscript').textContent = '[Listening to candidate voice...]';
+      document.getElementById('manualTextInput').value = '';
+      document.getElementById('studioRoundBadge').textContent = `Round ${currentQuestionIndex + 1} — Executive Assessment`;
+
+      speakAIText(qText);
+    }
+
+    function submitCandidateResponse() {
+      stopListening();
+      const answer = document.getElementById('manualTextInput').value.trim();
+      if (!answer) return;
+
+      sessionTranscripts.push({ question: EXECUTIVE_QUESTIONS[currentQuestionIndex], answer });
+      setOrbState('THINKING');
+
+      // AI verbal feedback synthesis
+      const verbalFeedback = "Thank you. That is a clear structured answer. Let's move to the next topic.";
+      document.getElementById('captionQuestion').textContent = verbalFeedback;
+
+      setTimeout(() => {
+        speakAIText(verbalFeedback, () => {
+          currentQuestionIndex++;
+          if (currentQuestionIndex < EXECUTIVE_QUESTIONS.length) {
+            askCurrentQuestion();
+          } else {
+            endInterviewSession();
+          }
+        });
+      }, 600);
+    }
+
+    function triggerNextAIQuestion() {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < EXECUTIVE_QUESTIONS.length) {
+        askCurrentQuestion();
+      } else {
+        endInterviewSession();
+      }
+    }
+
+    function handleInputKeydown(e) {
+      if (e.key === 'Enter') submitCandidateResponse();
+    }
+
+    function endInterviewSession() {
+      window.speechSynthesis.cancel();
+      stopListening();
+      stopWebcam();
+      showView('reportView');
+    }
+
+    // 5. MEDIA CONTROLS (MIC & WEBCAM)
+    function toggleMicrophone() {
+      isMicActive = !isMicActive;
+      const btn = document.getElementById('micToggleBtn');
+      if (isMicActive) {
+        btn.classList.add('active');
+        startListening();
+      } else {
+        btn.classList.remove('active');
+        stopListening();
+        setOrbState('IDLE');
+      }
+    }
+
+    function toggleWebcam() {
+      const video = document.getElementById('userWebcam');
+      const placeholder = document.getElementById('webcamPlaceholder');
+      const btn = document.getElementById('cameraToggleBtn');
+
+      if (!isWebcamActive) {
+        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+          .then(stream => {
+            video.srcObject = stream;
+            video.style.display = 'block';
+            placeholder.style.display = 'none';
+            isWebcamActive = true;
+            btn.classList.add('active');
+          })
+          .catch(() => alert('Webcam permission denied or unavailable.'));
+      } else {
+        stopWebcam();
+        btn.classList.remove('active');
+      }
+    }
+
+    function stopWebcam() {
+      const video = document.getElementById('userWebcam');
+      const placeholder = document.getElementById('webcamPlaceholder');
+      if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
+      }
+      if (video) video.style.display = 'none';
+      if (placeholder) placeholder.style.display = 'flex';
+      isWebcamActive = false;
+    }
+
+    function toggleAIVoiceMute() {
+      isAIVoiceMuted = !isAIVoiceMuted;
+      const btn = document.getElementById('voiceMuteBtn');
+      if (isAIVoiceMuted) {
+        window.speechSynthesis.cancel();
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+
+    // 6. SIRI ORB CANVAS ANIMATOR
+    function setOrbState(state) {
+      orbState = state;
+      document.getElementById('orbStateTag').textContent = state;
+    }
+
+    function initSiriOrbCanvas() {
+      const canvas = document.getElementById('siriOrbCanvas');
+      const ctx = canvas.getContext('2d');
+      let angle = 0;
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        angle += 0.03;
+        let radiusScale = 1;
+        let colorGrad1 = '#06b6d4';
+        let colorGrad2 = '#6366f1';
+
+        if (orbState === 'SPEAKING') {
+          radiusScale = 1 + Math.sin(angle * 3) * 0.08;
+          colorGrad1 = '#ec4899';
+          colorGrad2 = '#8b5cf6';
+        } else if (orbState === 'LISTENING') {
+          radiusScale = 1 + Math.cos(angle * 2) * 0.05;
+          colorGrad1 = '#10b981';
+          colorGrad2 = '#06b6d4';
+        } else if (orbState === 'THINKING') {
+          radiusScale = 1 + Math.sin(angle * 5) * 0.03;
+          colorGrad1 = '#f59e0b';
+          colorGrad2 = '#ef4444';
+        }
+
+        // Draw Outer Radial Glow
+        const grad = ctx.createRadialGradient(cx, cy, 20 * radiusScale, cx, cy, 90 * radiusScale);
+        grad.addColorStop(0, colorGrad1);
+        grad.addColorStop(0.5, colorGrad2);
+        grad.addColorStop(1, 'transparent');
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 95 * radiusScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw Core Glowing Sphere
+        const coreGrad = ctx.createRadialGradient(cx - 15, cy - 15, 5, cx, cy, 50);
+        coreGrad.addColorStop(0, '#ffffff');
+        coreGrad.addColorStop(0.4, colorGrad1);
+        coreGrad.addColorStop(1, colorGrad2);
+
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 45 * radiusScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        animationFrameId = requestAnimationFrame(render);
+      }
+      render();
+    }
+  </script>
+</body>
+</html>
