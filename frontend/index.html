@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InterviewPro AI — Enterprise Real-Time Platform</title>
+  <meta name="description" content="Production-grade executive AI voice mock interview simulator powered by Python FastAPI, SQLite database, C evaluator engine, and Chart.js graphical analytics.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <div class="ambient-glow"></div>
+
+  <div class="app-container">
+    <nav class="navbar">
+      <div class="brand-logo">
+        <div class="brand-icon"><i class="fa-solid fa-brain"></i></div>
+        InterviewPro AI
+        <span class="nav-badge">FastAPI + C + SQLite Engine</span>
+      </div>
+
+      <div class="nav-tabs">
+        <button class="nav-tab-btn active" onclick="switchView('homeView')"><i class="fa-solid fa-house"></i> Home</button>
+        <button class="nav-tab-btn" onclick="switchView('studioView')"><i class="fa-solid fa-microphone"></i> Studio</button>
+        <button class="nav-tab-btn" onclick="switchView('ideView')"><i class="fa-solid fa-code"></i> Coding IDE</button>
+        <button class="nav-tab-btn" onclick="switchView('reportView')"><i class="fa-solid fa-chart-line"></i> Graphical Report</button>
+      </div>
+
+      <div class="nav-actions">
+        <button class="btn-lg-primary" onclick="switchView('setupView')" style="padding:8px 18px; font-size:0.85rem;"><i class="fa-solid fa-play"></i> Launch Session</button>
+      </div>
+    </nav>
+
+    <!-- VIEW 1: HERO -->
+    <div id="homeView" class="view-section active">
+      <section class="hero-section">
+        <h1 class="hero-title">Master Tech Interviews with <span>Python & C Engine Power</span></h1>
+        <p style="color:var(--text-muted); max-width:700px; margin:0 auto 2rem;">Full-stack enterprise AI interview platform with FastAPI backend server, SQLite session database, native C code engine, and Chart.js graphical scorecards.</p>
+        <button class="btn-lg-primary" onclick="switchView('setupView')"><i class="fa-solid fa-rocket"></i> Start Real-Time Interview</button>
+      </section>
+    </div>
+
+    <!-- VIEW 2: SETUP -->
+    <div id="setupView" class="view-section">
+      <div style="max-width:700px; margin:3rem auto; background:var(--bg-card); padding:2rem; border-radius:16px; border:1px solid var(--border-subtle);">
+        <h2 style="margin-bottom:1rem;">Configure Progressive Interview</h2>
+        <div style="margin-bottom:1rem;">
+          <label style="display:block; margin-bottom:4px;">Target Company</label>
+          <select id="setupCompany" style="width:100%; padding:10px; background:#07090e; color:#fff; border:1px solid var(--border-subtle); border-radius:8px;">
+            <option value="Google">Google (DSA & Scale)</option>
+            <option value="Amazon" selected>Amazon (Leadership Principles & STAR)</option>
+            <option value="Goldman Sachs">Goldman Sachs (Quantitative & Algo)</option>
+            <option value="Meta">Meta (Product Architecture)</option>
+          </select>
+        </div>
+        <div style="margin-bottom:1.5rem;">
+          <label style="display:block; margin-bottom:4px;">Job Role</label>
+          <input type="text" id="setupRole" value="Senior Software Engineer" style="width:100%; padding:10px; background:#07090e; color:#fff; border:1px solid var(--border-subtle); border-radius:8px;">
+        </div>
+        <input type="hidden" id="setupExp" value="Mid-Level">
+        <button class="btn-lg-primary" style="width:100%; justify-content:center;" onclick="startInterviewSession()"><i class="fa-solid fa-microphone"></i> Start Voice Studio</button>
+      </div>
+    </div>
+
+    <!-- VIEW 3: STUDIO -->
+    <div id="studioView" class="view-section">
+      <div class="studio-layout">
+        <div class="ai-orb-card">
+          <div style="position:relative; width:220px; height:220px; margin-bottom:1rem;">
+            <canvas id="siriOrbCanvas" width="220" height="220"></canvas>
+            <div id="orbStateTag" style="position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); background:#07090e; border:1px solid var(--border-accent); padding:4px 14px; border-radius:20px; font-size:0.75rem; color:var(--siri-cyan);">IDLE</div>
+          </div>
+          <div style="background:rgba(7,9,14,0.85); border:1px solid var(--border-subtle); padding:1.25rem; border-radius:12px; max-width:800px; text-align:center;">
+            <div id="studioQuestionText" style="font-size:1.1rem; font-weight:600; margin-bottom:8px;">Initializing session...</div>
+            <div id="studioLiveTranscript" style="color:var(--siri-cyan); font-style:italic;">[Listening...]</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: CODING IDE -->
+    <div id="ideView" class="view-section">
+      <div class="ide-layout">
+        <div class="ide-panel" style="padding:1.25rem;">
+          <h3>LRU Cache Implementation</h3>
+          <p>Implement an LRU Cache with O(1) time complexity.</p>
+        </div>
+        <div class="ide-panel">
+          <div style="padding:10px; background:#07090e; display:flex; justify-content:space-between;">
+            <select id="ideLanguage" style="padding:6px; background:#0f172a; color:#fff; border-radius:6px;">
+              <option value="python">Python 3</option>
+              <option value="cpp">C++ 20 (Native C Engine)</option>
+              <option value="javascript">JavaScript</option>
+            </select>
+            <button class="btn-lg-primary" style="padding:6px 16px; font-size:0.8rem;" onclick="runIDETestCases()"><i class="fa-solid fa-play"></i> Run Code</button>
+          </div>
+          <textarea id="codeEditor">def twoSum(nums, target):
+    seen = {}
+    for i, n in enumerate(nums):
+        diff = target - n
+        if diff in seen: return [seen[diff], i]
+        seen[n] = i
+    return []</textarea>
+          <div id="ideConsole" style="height:150px; background:#05070c; padding:1rem; font-family:var(--font-mono); font-size:0.85rem;">Output console ready...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 5: REPORT -->
+    <div id="reportView" class="view-section">
+      <div class="report-container">
+        <div class="report-card">
+          <h2 style="text-align:center; margin-bottom:1rem;">360° Graphical Performance Report</h2>
+          <div class="charts-grid-2">
+            <div class="chart-box"><canvas id="radarChartCanvas"></canvas></div>
+            <div class="chart-box"><canvas id="barChartCanvas"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/speech.js"></script>
+  <script src="/static/js/ide.js"></script>
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
