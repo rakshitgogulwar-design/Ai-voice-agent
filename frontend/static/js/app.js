@@ -10,11 +10,11 @@ const STATE = {
   orbState: 'IDLE'
 };
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = window.location.port ? `http://localhost:${window.location.port}/api` : 'http://localhost:8005/api';
 
 window.addEventListener('DOMContentLoaded', () => {
-  renderPersonas();
-  initSiriOrb();
+  if (typeof renderPersonas === 'function') renderPersonas();
+  if (typeof initSiriOrb === 'function') initSiriOrb();
 });
 
 function switchView(viewId) {

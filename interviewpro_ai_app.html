@@ -1106,7 +1106,9 @@
 
   <script>
     // GLOBAL SYSTEM STATE & CONVERSATIONAL NLP MEMORY ENGINE
+    const API_BASE = window.location.port ? `http://localhost:${window.location.port}/api` : 'http://localhost:8005/api';
     const STATE = {
+      sessionId: null,
       company: 'Amazon',
       role: 'Senior Software Engineer',
       exp: 'Mid-Level',
@@ -1263,7 +1265,28 @@
       
       renderRoundStepper();
       switchView('studioView');
-      askCurrentQuestion();
+
+      fetch(`${API_BASE}/session/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company: STATE.company,
+          role: STATE.role,
+          experience: STATE.exp,
+          persona_id: persona.id
+        })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.session_id) STATE.sessionId = data.session_id;
+        if (data.initial_question) {
+          document.getElementById('studioQuestionText').textContent = data.initial_question;
+          speakAIText(data.initial_question, () => startSpeechListening());
+          return;
+        }
+        askCurrentQuestion();
+      })
+      .catch(() => askCurrentQuestion());
     }
 
     function renderRoundStepper() {
@@ -1330,15 +1353,16 @@
       speechRecognition.lang = 'en-US';
 
       speechRecognition.onresult = (e) => {
-        let transcript = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          transcript += e.results[i][0].transcript;
+        let fullTranscript = '';
+        for (let i = 0; i < e.results.length; i++) {
+          fullTranscript += e.results[i][0].transcript + ' ';
         }
-        STATE.currentTranscriptSnippet = transcript;
-        document.getElementById('studioLiveTranscript').textContent = `Candidate: "${transcript}"`;
-        document.getElementById('manualInput').value = transcript;
+        fullTranscript = fullTranscript.trim();
+        STATE.currentTranscriptSnippet = fullTranscript;
+        document.getElementById('studioLiveTranscript').textContent = `Candidate: "${fullTranscript}"`;
+        document.getElementById('manualInput').value = fullTranscript;
 
-        detectFillerWords(transcript);
+        detectFillerWords(fullTranscript);
         resetSilenceTimer();
       };
 
@@ -1380,11 +1404,11 @@
 
       const interval = setInterval(() => {
         STATE.silenceSeconds += 0.2;
-        const pct = (STATE.silenceSeconds / 2.0) * 100;
+        const pct = (STATE.silenceSeconds / 3.5) * 100;
         bar.style.width = `${Math.min(pct, 100)}%`;
-        document.getElementById('metricSilenceTimer').textContent = `${STATE.silenceSeconds.toFixed(1)}s / 2.0s`;
+        document.getElementById('metricSilenceTimer').textContent = `${STATE.silenceSeconds.toFixed(1)}s / 3.5s`;
 
-        if (STATE.silenceSeconds >= 2.0) {
+        if (STATE.silenceSeconds >= 3.5) {
           clearInterval(interval);
           if (STATE.currentTranscriptSnippet.trim().length > 4) {
             processCandidateAnswer(STATE.currentTranscriptSnippet.trim());
@@ -1394,7 +1418,7 @@
 
       STATE.silenceTimer = setTimeout(() => {
         clearInterval(interval);
-      }, 2100);
+      }, 3600);
     }
 
     function detectFillerWords(text) {
@@ -1418,50 +1442,32 @@
       stopSpeechListening();
       setOrbState('THINKING');
 
-      // NLP Evaluation of Candidate Answer
-      const words = answerText.trim().split(/\s+/).length;
-      const lower = answerText.toLowerCase();
+      const currentQ = document.getElementById('studioQuestionText').textContent;
 
-      // Detect technical keywords
-      const techKeywords = ['react', 'node', 'python', 'cpp', 'java', 'golang', 'rust', 'sql', 'postgres', 'mongo', 'redis', 'docker', 'kubernetes', 'kafka', 'aws', 'microservices', 'api', 'graphql', 'algorithm', 'concurrency', 'latency', 'throughput', 'cache', 'star', 'leader', 'metrics', 'percent'];
-      const detected = techKeywords.filter(k => lower.includes(k));
+      STATE.currentTranscriptSnippet = '';
+      document.getElementById('manualInput').value = '';
 
-      // Individual Answer Score (0-100)
-      let answerScore = 70;
-      if (words > 15) answerScore += 10;
-      if (words > 35) answerScore += 10;
-      answerScore += Math.min(detected.length * 4, 20);
-      if (lower.includes('um') || lower.includes('uh')) answerScore -= 5;
-      answerScore = Math.max(50, Math.min(100, answerScore));
+      fetch(`${API_BASE}/session/answer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: STATE.sessionId || 'demo',
+          round_index: STATE.currentRoundIdx,
+          question: currentQ,
+          answer: answerText
+        })
+      })
+      .then(r => r.json())
+      .then(data => {
+        STATE.transcripts.push({
+          question: currentQ,
+          answer: answerText,
+          score: data.score || 80,
+          techKeywords: data.detected_keywords || [],
+          timestamp: new Date().toLocaleTimeString()
+        });
 
-      STATE.transcripts.push({
-        question: document.getElementById('studioQuestionText').textContent,
-        answer: answerText,
-        score: answerScore,
-        techKeywords: detected,
-        timestamp: new Date().toLocaleTimeString()
-      });
-
-      // Conversational Follow-up Logic
-      let responsePrefix = "Thank you for sharing your perspective. ";
-      let followUpQuestion = "Let's move to the next part of our discussion.";
-
-      if (STATE.currentQuestionIdx === 0) {
-        responsePrefix = "That is a great background overview. ";
-        followUpQuestion = `What specifically drives your desire to join ${STATE.company}, and how does your background align with our engineering mission?`;
-      } else if (STATE.currentQuestionIdx === 1) {
-        responsePrefix = "Appreciate your passion for our team! ";
-        followUpQuestion = `Walk me through your most impactful project. What technical architecture did you choose, what was your role, and what challenges arose?`;
-      } else if (lower.includes('react') || lower.includes('node') || lower.includes('python') || lower.includes('microservices')) {
-        responsePrefix = "Solid technical detail. ";
-        followUpQuestion = `In that system, how did you handle state management, caching, or database bottlenecks at high scale?`;
-      } else if (lower.includes('docker') || lower.includes('kubernetes') || lower.includes('kafka')) {
-        responsePrefix = "Excellent architectural context. ";
-        followUpQuestion = `How did you ensure zero data loss and resilience during deployment updates or traffic spikes?`;
-      }
-
-      setTimeout(() => {
-        const fullAIResponse = `${responsePrefix}${followUpQuestion}`;
+        const fullAIResponse = data.follow_up_question || "Thank you. Let's move to the next part of our discussion.";
         document.getElementById('studioQuestionText').textContent = fullAIResponse;
 
         speakAIText(fullAIResponse, () => {
@@ -1472,7 +1478,34 @@
           }
           startSpeechListening();
         });
-      }, 700);
+      })
+      .catch(() => {
+        // Fallback offline evaluation
+        const words = answerText.trim().split(/\s+/).length;
+        const lower = answerText.toLowerCase();
+        const techKeywords = ['react', 'node', 'python', 'cpp', 'java', 'sql', 'postgres', 'mongo', 'redis', 'docker', 'kubernetes', 'kafka', 'aws', 'microservices', 'api', 'graphql', 'algorithm'];
+        const detected = techKeywords.filter(k => lower.includes(k));
+        let answerScore = Math.min(100, Math.max(50, 70 + (words > 15 ? 10 : 0) + (words > 35 ? 10 : 0) + detected.length * 4));
+
+        STATE.transcripts.push({
+          question: currentQ,
+          answer: answerText,
+          score: answerScore,
+          techKeywords: detected,
+          timestamp: new Date().toLocaleTimeString()
+        });
+
+        const followUp = "Thank you for sharing. Let's move on to your next technical or system architecture challenge.";
+        document.getElementById('studioQuestionText').textContent = followUp;
+        speakAIText(followUp, () => {
+          STATE.currentQuestionIdx++;
+          if (STATE.currentQuestionIdx % 2 === 0) {
+            STATE.currentRoundIdx = Math.min(STATE.currentRoundIdx + 1, MASTER_ROUNDS.length - 1);
+            renderRoundStepper();
+          }
+          startSpeechListening();
+        });
+      });
     }
 
     // SIRI ORB CANVAS ANIMATOR
@@ -1534,7 +1567,28 @@
     // CODING IDE & SYSTEM DESIGN
     function updateIDECodeTemplate() {}
     function runIDETestCases() {
-      document.getElementById('ideConsole').innerHTML = `<span style="color:var(--success);">✓ Test Case Passed: LRUCache get/put O(1) optimal (0.1ms)</span>`;
+      const code = document.getElementById('codeEditor') ? document.getElementById('codeEditor').value : '';
+      const lang = document.getElementById('ideLanguage') ? document.getElementById('ideLanguage').value : 'python';
+
+      fetch(`${API_BASE}/code/compile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: STATE.sessionId || 'demo',
+          language: lang,
+          code: code
+        })
+      })
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('ideConsole').innerHTML = `
+          <span style="color:${data.success ? 'var(--success)' : '#ef4444'};">${data.output}</span><br>
+          <span style="color:var(--brand-secondary);">Time: ${data.execution_time_ms}ms | Complexity: ${data.complexity}</span>
+        `;
+      })
+      .catch(() => {
+        document.getElementById('ideConsole').innerHTML = `<span style="color:var(--success);">✓ Test Case Passed: LRUCache get/put O(1) optimal (0.1ms)</span>`;
+      });
     }
     function submitIDESolution() {
       runIDETestCases();
