@@ -3,134 +3,428 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InterviewPro AI — Enterprise Real-Time Platform</title>
-  <meta name="description" content="Production-grade executive AI voice mock interview simulator powered by Python FastAPI, SQLite database, C evaluator engine, and Chart.js graphical analytics.">
+  <title>ResumeFlow — Interview Studio</title>
+  <meta name="description" content="Upload your resume and complete a personalized voice interview built around your experience.">
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/static/css/style.css">
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <div class="ambient-glow"></div>
-
-  <div class="app-container">
-    <nav class="navbar">
-      <div class="brand-logo">
-        <div class="brand-icon"><i class="fa-solid fa-brain"></i></div>
-        InterviewPro AI
-        <span class="nav-badge">FastAPI + C + SQLite Engine</span>
+  <!-- ═══════════════════════════════════════════════════════════════
+       NAVIGATION BAR
+       ═══════════════════════════════════════════════════════════════ -->
+  <nav class="nav" id="mainNav">
+    <div class="nav__brand" onclick="App.navigate('landing')">
+      <div class="nav__logo">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <rect width="26" height="26" rx="6" fill="url(#logo-grad)"/>
+          <path d="M7 16V10L13 7L19 10V16L13 19L7 16Z" stroke="white" stroke-width="1.3" fill="none"/>
+          <circle cx="13" cy="13" r="2.5" fill="white" opacity="0.9"/>
+          <defs><linearGradient id="logo-grad" x1="0" y1="0" x2="26" y2="26"><stop stop-color="#e8735a"/><stop offset="1" stop-color="#e8a838"/></linearGradient></defs>
+        </svg>
       </div>
-
-      <div class="nav-tabs">
-        <button class="nav-tab-btn active" onclick="switchView('homeView')"><i class="fa-solid fa-house"></i> Home</button>
-        <button class="nav-tab-btn" onclick="switchView('studioView')"><i class="fa-solid fa-microphone"></i> Studio</button>
-        <button class="nav-tab-btn" onclick="switchView('ideView')"><i class="fa-solid fa-code"></i> Coding IDE</button>
-        <button class="nav-tab-btn" onclick="switchView('reportView')"><i class="fa-solid fa-chart-line"></i> Graphical Report</button>
-      </div>
-
-      <div class="nav-actions">
-        <button class="btn-lg-primary" onclick="switchView('setupView')" style="padding:8px 18px; font-size:0.85rem;"><i class="fa-solid fa-play"></i> Launch Session</button>
-      </div>
-    </nav>
-
-    <!-- VIEW 1: HERO -->
-    <div id="homeView" class="view-section active">
-      <section class="hero-section">
-        <h1 class="hero-title">Master Tech Interviews with <span>Python & C Engine Power</span></h1>
-        <p style="color:var(--text-muted); max-width:700px; margin:0 auto 2rem;">Full-stack enterprise AI interview platform with FastAPI backend server, SQLite session database, native C code engine, and Chart.js graphical scorecards.</p>
-        <button class="btn-lg-primary" onclick="switchView('setupView')"><i class="fa-solid fa-rocket"></i> Start Real-Time Interview</button>
-      </section>
+      <span class="nav__name">ResumeFlow</span>
+      <span class="nav__badge">Interview Studio</span>
     </div>
-
-    <!-- VIEW 2: SETUP -->
-    <div id="setupView" class="view-section">
-      <div style="max-width:700px; margin:3rem auto; background:var(--bg-card); padding:2rem; border-radius:16px; border:1px solid var(--border-subtle);">
-        <h2 style="margin-bottom:1rem;">Configure Progressive Interview</h2>
-        <div style="margin-bottom:1rem;">
-          <label style="display:block; margin-bottom:4px;">Target Company</label>
-          <select id="setupCompany" style="width:100%; padding:10px; background:#07090e; color:#fff; border:1px solid var(--border-subtle); border-radius:8px;">
-            <option value="Google">Google (DSA & Scale)</option>
-            <option value="Amazon" selected>Amazon (Leadership Principles & STAR)</option>
-            <option value="Goldman Sachs">Goldman Sachs (Quantitative & Algo)</option>
-            <option value="Meta">Meta (Product Architecture)</option>
-          </select>
-        </div>
-        <div style="margin-bottom:1.5rem;">
-          <label style="display:block; margin-bottom:4px;">Job Role</label>
-          <input type="text" id="setupRole" value="Senior Software Engineer" style="width:100%; padding:10px; background:#07090e; color:#fff; border:1px solid var(--border-subtle); border-radius:8px;">
-        </div>
-        <input type="hidden" id="setupExp" value="Mid-Level">
-        <button class="btn-lg-primary" style="width:100%; justify-content:center;" onclick="startInterviewSession()"><i class="fa-solid fa-microphone"></i> Start Voice Studio</button>
-      </div>
+    <div class="nav__actions" id="navActions">
+      <!-- Dynamically populated -->
     </div>
+  </nav>
 
-    <!-- VIEW 3: STUDIO -->
-    <div id="studioView" class="view-section">
-      <div class="studio-layout">
-        <div class="ai-orb-card">
-          <div style="position:relative; width:220px; height:220px; margin-bottom:1rem;">
-            <canvas id="siriOrbCanvas" width="220" height="220"></canvas>
-            <div id="orbStateTag" style="position:absolute; bottom:-10px; left:50%; transform:translateX(-50%); background:#07090e; border:1px solid var(--border-accent); padding:4px 14px; border-radius:20px; font-size:0.75rem; color:var(--siri-cyan);">IDLE</div>
+  <!-- ═══════════════════════════════════════════════════════════════
+       VIEW: LANDING PAGE
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="view-landing" class="view active">
+    <section class="hero">
+      <div class="hero__bg">
+        <img class="hero__bg-photo" src="https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=1600&h=900&fit=crop&crop=center" alt="" loading="eager" aria-hidden="true">
+      </div>
+      <div class="hero__content">
+        <div class="hero__label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Career Assessment Platform</div>
+        <h1 class="hero__title">Practice your<br>real interview story.</h1>
+        <p class="hero__subtitle">Upload your resume and complete a personalized voice interview built around your experience.</p>
+        <button class="btn btn--primary btn--lg" onclick="App.navigate('upload')">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.5"/><polygon points="8,6 15,10 8,14" fill="currentColor"/></svg>
+          Start My Interview
+        </button>
+        <div class="hero__features">
+          <div class="hero__feature">
+            <div class="hero__feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <span>Resume-Based Questions</span>
           </div>
-          <div style="background:rgba(7,9,14,0.85); border:1px solid var(--border-subtle); padding:1.25rem; border-radius:12px; max-width:800px; text-align:center;">
-            <div id="studioQuestionText" style="font-size:1.1rem; font-weight:600; margin-bottom:8px;">Initializing session...</div>
-            <div id="studioLiveTranscript" style="color:var(--siri-cyan); font-style:italic;">[Listening...]</div>
+          <div class="hero__feature">
+            <div class="hero__feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+            </div>
+            <span>Voice Interview</span>
+          </div>
+          <div class="hero__feature">
+            <div class="hero__feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <span>PDF Report</span>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- VIEW 4: CODING IDE -->
-    <div id="ideView" class="view-section">
-      <div class="ide-layout">
-        <div class="ide-panel" style="padding:1.25rem;">
-          <h3>LRU Cache Implementation</h3>
-          <p>Implement an LRU Cache with O(1) time complexity.</p>
-        </div>
-        <div class="ide-panel">
-          <div style="padding:10px; background:#07090e; display:flex; justify-content:space-between;">
-            <select id="ideLanguage" style="padding:6px; background:#0f172a; color:#fff; border-radius:6px;">
-              <option value="python">Python 3</option>
-              <option value="cpp">C++ 20 (Native C Engine)</option>
-              <option value="javascript">JavaScript</option>
-            </select>
-            <button class="btn-lg-primary" style="padding:6px 16px; font-size:0.8rem;" onclick="runIDETestCases()"><i class="fa-solid fa-play"></i> Run Code</button>
+    <!-- How It Works — Photo Cards -->
+    <section class="flow-preview">
+      <h2 class="section-title">How it works</h2>
+      <p class="section-subtitle">Four steps to a stronger interview presence.</p>
+      <div class="timeline">
+        <div class="timeline__item">
+          <div class="timeline__card">
+            <img class="timeline__card-img" src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&h=280&fit=crop&crop=center" alt="Upload resume" loading="lazy">
+            <div class="timeline__card-body">
+              <div class="timeline__marker">1</div>
+              <h3>Upload Resume</h3>
+              <p>Upload your PDF, DOCX, or TXT resume. We extract your experience, skills, and achievements.</p>
+            </div>
           </div>
-          <textarea id="codeEditor">def twoSum(nums, target):
-    seen = {}
-    for i, n in enumerate(nums):
-        diff = target - n
-        if diff in seen: return [seen[diff], i]
-        seen[n] = i
-    return []</textarea>
-          <div id="ideConsole" style="height:150px; background:#05070c; padding:1rem; font-family:var(--font-mono); font-size:0.85rem;">Output console ready...</div>
+        </div>
+        <div class="timeline__item">
+          <div class="timeline__card">
+            <img class="timeline__card-img" src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&h=280&fit=crop&crop=center" alt="Review profile" loading="lazy">
+            <div class="timeline__card-body">
+              <div class="timeline__marker">2</div>
+              <h3>Review & Confirm</h3>
+              <p>Review the extracted information. Edit any details to ensure accuracy.</p>
+            </div>
+          </div>
+        </div>
+        <div class="timeline__item">
+          <div class="timeline__card">
+            <img class="timeline__card-img" src="https://images.unsplash.com/photo-1589903308904-1010c2294adc?w=400&h=280&fit=crop&crop=center" alt="Voice interview" loading="lazy">
+            <div class="timeline__card-body">
+              <div class="timeline__marker">3</div>
+              <h3>Voice Interview</h3>
+              <p>Answer personalized questions using your voice. Get dynamic follow-ups.</p>
+            </div>
+          </div>
+        </div>
+        <div class="timeline__item">
+          <div class="timeline__card">
+            <img class="timeline__card-img" src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=280&fit=crop&crop=center" alt="Get report" loading="lazy">
+            <div class="timeline__card-body">
+              <div class="timeline__marker">4</div>
+              <h3>Get Your Report</h3>
+              <p>Receive a detailed scorecard with strengths, improvements, and a practice plan.</p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
+  </div>
 
-    <!-- VIEW 5: REPORT -->
-    <div id="reportView" class="view-section">
-      <div class="report-container">
-        <div class="report-card">
-          <h2 style="text-align:center; margin-bottom:1rem;">360° Graphical Performance Report</h2>
-          <div class="charts-grid-2">
-            <div class="chart-box"><canvas id="radarChartCanvas"></canvas></div>
-            <div class="chart-box"><canvas id="barChartCanvas"></canvas></div>
+  <!-- ═══════════════════════════════════════════════════════════════
+       VIEW: RESUME UPLOAD
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="view-upload" class="view">
+    <div class="container">
+      <div class="upload-card">
+        <div class="upload-card__header">
+          <h2>Upload Your Resume</h2>
+          <p>We'll extract your experience, skills, and achievements to create a personalized interview.</p>
+        </div>
+
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <input type="file" id="fileInput" accept=".pdf,.docx,.txt" hidden>
+          <div class="upload-zone__icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M24 32V16M16 22l8-8 8 8"/>
+              <path d="M40 32v4a4 4 0 01-4 4H12a4 4 0 01-4-4v-4"/>
+            </svg>
           </div>
+          <div class="upload-zone__text">
+            <strong>Drag and drop your resume here</strong>
+            <span>or click to browse</span>
+          </div>
+          <div class="upload-zone__formats">PDF, DOCX, TXT — Max 10MB</div>
+        </div>
+
+        <div class="upload-progress" id="uploadProgress" style="display:none">
+          <div class="progress-bar"><div class="progress-bar__fill" id="progressFill"></div></div>
+          <span class="upload-progress__text" id="uploadProgressText">Uploading...</span>
+        </div>
+
+        <div class="upload-error" id="uploadError" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       VIEW: RESUME REVIEW
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="view-review" class="view">
+    <div class="container">
+      <div class="review-header">
+        <h2>Review Your Resume Information</h2>
+        <p>Verify the extracted details before starting your interview. Click "Edit" to make corrections.</p>
+      </div>
+
+      <div class="review-grid" id="reviewContent">
+        <!-- Dynamically populated -->
+      </div>
+
+      <div class="review-actions">
+        <button class="btn btn--secondary" onclick="App.navigate('upload')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4L6 9l5 5"/></svg>
+          Back
+        </button>
+        <button class="btn btn--primary btn--lg" onclick="App.startInterview()">
+          Start Interview
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 4l5 5-5 5"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       VIEW: INTERVIEW STUDIO
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="view-interview" class="view">
+    <div class="studio">
+      <!-- Left: Interview Content -->
+      <div class="studio__main">
+        <!-- Progress Bar -->
+        <div class="studio__progress">
+          <div class="studio__progress-info">
+            <span id="studioQuestionNum">Question 1 of 10</span>
+            <span id="studioCompletion">0%</span>
+          </div>
+          <div class="progress-bar progress-bar--sm">
+            <div class="progress-bar__fill" id="studioProgressFill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Current Question -->
+        <div class="studio__question-area">
+          <div class="studio__category" id="studioCategory">Resume Introduction</div>
+          <div class="studio__question" id="studioQuestion">Loading question...</div>
+        </div>
+
+        <!-- Waveform -->
+        <div class="studio__waveform" id="studioWaveform">
+          <canvas id="waveformCanvas" width="800" height="50"></canvas>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="studio__status">
+          <div class="studio__status-item" id="micStatus">
+            <span class="dot dot--inactive"></span> Microphone
+          </div>
+          <div class="studio__status-item" id="recordingStatus">
+            <span class="dot dot--inactive"></span> Not Recording
+          </div>
+          <div class="studio__status-item" id="studioTimer">00:00</div>
+        </div>
+
+        <!-- Live Transcript -->
+        <div class="studio__transcript" id="studioTranscript">
+          <div class="studio__transcript-header">
+            <span>Live Transcript</span>
+            <button class="btn--icon" onclick="App.toggleTranscript()" title="Toggle transcript">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
+            </button>
+          </div>
+          <div class="studio__transcript-body" id="transcriptBody">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Text Input Fallback -->
+        <div class="studio__text-input" id="textInputArea" style="display:none">
+          <textarea id="textInput" placeholder="Type your answer here..." rows="3"></textarea>
+          <button class="btn btn--primary btn--sm" onclick="App.submitTextAnswer()">Submit Answer</button>
+        </div>
+      </div>
+
+      <!-- Right: Controls -->
+      <div class="studio__sidebar">
+        <!-- Recording Indicator -->
+        <div class="studio__mic-visual">
+          <div class="recording-indicator" id="micOrb">
+            <div class="studio-bars">
+              <div class="studio-bar"></div>
+              <div class="studio-bar"></div>
+              <div class="studio-bar"></div>
+              <div class="studio-bar"></div>
+              <div class="studio-bar"></div>
+            </div>
+          </div>
+          <div class="studio__mic-state" id="micStateText">Ready</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="studio__controls">
+          <button class="ctrl-btn" id="btnRepeat" onclick="App.repeatQuestion()" title="Repeat question">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10a8 8 0 0114-5.3V2M18 10a8 8 0 01-14 5.3V18"/><polyline points="2 4 2 8 6 8"/></svg>
+            <span>Repeat</span>
+          </button>
+          <button class="ctrl-btn ctrl-btn--primary" id="btnRecord" onclick="App.toggleRecording()" title="Start/stop recording">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+            <span id="btnRecordText">Start</span>
+          </button>
+          <button class="ctrl-btn" id="btnPause" onclick="App.pauseInterview()" title="Pause interview" disabled>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="4" width="3" height="12" rx="1"/><rect x="11" y="4" width="3" height="12" rx="1"/></svg>
+            <span>Pause</span>
+          </button>
+          <button class="ctrl-btn" id="btnTextInput" onclick="App.toggleTextInput()" title="Type answer instead">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="16" height="12" rx="2"/><line x1="6" y1="8" x2="14" y2="8"/><line x1="6" y1="12" x2="10" y2="12"/></svg>
+            <span>Type</span>
+          </button>
+        </div>
+
+        <!-- Consent & End -->
+        <div class="studio__footer">
+          <div class="studio__consent" id="consentNotice" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="7"/><line x1="8" y1="5" x2="8" y2="8"/><circle cx="8" cy="11" r="0.5" fill="currentColor"/></svg>
+            <span>Audio is processed locally and is not stored on our servers.</span>
+          </div>
+          <button class="btn btn--danger btn--sm" onclick="App.endInterview()" id="btnEndInterview">
+            End Interview
+          </button>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="/static/js/speech.js"></script>
-  <script src="/static/js/ide.js"></script>
-  <script src="/static/js/charts.js"></script>
+  <!-- ═══════════════════════════════════════════════════════════════
+       VIEW: CONSENT MODAL
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="modal" id="consentModal" style="display:none">
+    <div class="modal__overlay" onclick="App.closeConsent(false)"></div>
+    <div class="modal__content">
+      <h3>Microphone Permission</h3>
+      <p>This interview uses your browser's microphone for voice input. Audio is processed locally in your browser and is <strong>not recorded or stored</strong> on any server.</p>
+      <p>Only the text transcript of your answers is saved for evaluation purposes.</p>
+      <div class="modal__actions">
+        <button class="btn btn--secondary" onclick="App.closeConsent(false)">Use Text Instead</button>
+        <button class="btn btn--primary" onclick="App.closeConsent(true)">Allow Microphone</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       VIEW: RESULTS DASHBOARD
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="view-results" class="view">
+    <div class="container container--lg">
+      <!-- Results Header -->
+      <div class="results-header" id="resultsHeader">
+        <div class="results-header__main">
+          <h2>Interview Results</h2>
+          <p id="resultsSubtitle">Your personalized assessment report</p>
+        </div>
+        <div class="results-header__actions">
+          <button class="btn btn--secondary" onclick="App.downloadTranscript('txt')">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+            Transcript TXT
+          </button>
+          <button class="btn btn--secondary" onclick="App.downloadTranscript('json')">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+            Transcript JSON
+          </button>
+          <button class="btn btn--primary" onclick="App.downloadPDF()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+            Download PDF Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Overview Cards -->
+      <div class="results-overview" id="resultsOverview">
+        <!-- Dynamically populated -->
+      </div>
+
+      <!-- Scorecard -->
+      <div class="results-section">
+        <h3 class="results-section__title">Overall Scorecard</h3>
+        <div class="scorecard" id="resultsScorecard">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Strengths & Improvements -->
+      <div class="results-split">
+        <div class="results-section">
+          <h3 class="results-section__title results-section__title--green">Strongest Areas</h3>
+          <div id="resultsStrengths" class="results-list"></div>
+        </div>
+        <div class="results-section">
+          <h3 class="results-section__title results-section__title--amber">Areas for Improvement</h3>
+          <div id="resultsImprovements" class="results-list"></div>
+        </div>
+      </div>
+
+      <!-- Communication Analysis -->
+      <div class="results-section">
+        <h3 class="results-section__title">Communication Analysis</h3>
+        <div class="comm-grid" id="resultsComm">
+          <!-- Dynamically populated -->
+        </div>
+        <p class="results-disclaimer">Communication metrics are used for coaching only. They do not interpret personality, intelligence, accent quality, or protected characteristics.</p>
+      </div>
+
+      <!-- Question-by-Question Review -->
+      <div class="results-section">
+        <h3 class="results-section__title">Question-by-Question Review</h3>
+        <div id="resultsQuestions" class="questions-review"></div>
+      </div>
+
+      <!-- Practice Plan -->
+      <div class="results-section">
+        <h3 class="results-section__title">Personalized Practice Plan</h3>
+        <div id="resultsPractice" class="practice-plan"></div>
+      </div>
+
+      <!-- Resume Consistency -->
+      <div class="results-section" id="consistencySection" style="display:none">
+        <h3 class="results-section__title">Resume Consistency Notes</h3>
+        <div id="resultsConsistency" class="results-list"></div>
+      </div>
+
+      <!-- Final Actions -->
+      <div class="results-actions">
+        <button class="btn btn--secondary" onclick="App.navigate('landing')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4L6 8l5 4"/></svg>
+          Back to Home
+        </button>
+        <button class="btn btn--primary" onclick="App.navigate('upload')">
+          Start New Interview
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 4l5 4-5 4"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       VIEW: LOADING STATE
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="view-loading" class="view" style="display:none">
+    <div class="loading-center">
+      <div class="loader">
+        <div class="loader__ring"></div>
+        <div class="loader__ring"></div>
+        <div class="loader__ring"></div>
+      </div>
+      <p class="loading-text" id="loadingText">Processing...</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       TOAST NOTIFICATIONS
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="toast-container" id="toastContainer"></div>
+
   <script src="/static/js/app.js"></script>
+  <script src="/static/js/speech.js"></script>
 </body>
 </html>
