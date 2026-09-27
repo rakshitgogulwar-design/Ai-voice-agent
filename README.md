@@ -58,8 +58,68 @@ ResumeFlow Interview Studio/
 - **Voice**: Web Speech API (browser-native STT & TTS)
 - **PDF**: reportlab (server-side)
 - **Resume Parsing**: pdfplumber / python-docx
-- **LLM (optional)**: Groq (recommended, free tier) or OpenAI, via REST
+- **LLM Engine**: Multi-tier orchestration (Groq `openai/gpt-oss-120b`, Google Gemini `gemini-3.8-flash`, OpenAI `gpt-4o-mini`, with rule-based fallback)
 - **Deployment**: Docker (Hugging Face Spaces ready)
+
+---
+
+## AI Interview & Evaluation Pipeline
+
+![ResumeFlow n8n-Style Workflow and API Execution Pipeline](docs/workflow_diagram.png)
+
+```mermaid
+
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#2563eb', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#1d4ed8', 'lineColor': '#64748b', 'secondaryColor': '#f1f5f9', 'tertiaryColor': '#ffffff' }}}%%
+flowchart TD
+    %% STYLES
+    classDef startNode fill:#0284c7,stroke:#0369a1,color:#ffffff,stroke-width:2px;
+    classDef llmNode fill:#7c3aed,stroke:#6d28d9,color:#ffffff,stroke-width:2px;
+    classDef actionNode fill:#0f172a,stroke:#334155,color:#ffffff,stroke-width:2px;
+    classDef loopNode fill:#ea580c,stroke:#c2410c,color:#ffffff,stroke-width:2px;
+    classDef resultNode fill:#059669,stroke:#047857,color:#ffffff,stroke-width:2px;
+
+    %% STEP 1: RESUME INGESTION
+    subgraph S1["  STAGE 1: RESUME INGESTION & ANALYSIS  "]
+        A["📄 Upload Resume<br/>(PDF, DOCX, TXT)"]:::startNode --> B["⚙️ Parser & Entity Extraction<br/>(Skills, Tech Stack, Timeline, Metrics)"]:::actionNode
+        B --> C[("💾 Stored Profile<br/>SQLite")]:::actionNode
+    end
+
+    %% STEP 2: QUESTION GENERATION
+    subgraph S2["  STAGE 2: INTELLIGENT QUESTION GENERATION  "]
+        C --> D["🧠 LLM Question Generator<br/>(Groq gpt-oss-120b ➔ Gemini 3.8 Flash ➔ OpenAI)"]:::llmNode
+        D --> E["📋 10 Tailored STAR Questions<br/>(Introduction, Deep-Dives, Technical, Problem Solving)"]:::actionNode
+    end
+
+    %% STEP 3: REAL-TIME INTERVIEW LOOP
+    subgraph S3["  STAGE 3: VOICE INTERVIEW & ADAPTIVE PROBING  "]
+        E --> F["🔊 Interviewer Asks Question<br/>(Browser Speech Synthesis TTS)"]:::actionNode
+        F --> G["🎙️ Candidate Answers via Mic<br/>(Speech Recognition STT / Text)"]:::actionNode
+        G --> H{"Need More<br/>Detail?"}:::loopNode
+        H -- "Vague or Incomplete" --> I["❓ Dynamic Follow-Up Question<br/>(Groq / Gemini)"]:::llmNode
+        I --> F
+        H -- "Sufficient Evidence" --> J["💾 Save Answer & Audio Metrics"]:::actionNode
+    end
+
+    %% STEP 4: MULTI-DIMENSIONAL EVALUATION
+    subgraph S4["  STAGE 4: EVIDENCE-BASED ASSESSMENT  "]
+        J --> K["🤖 AI Evaluator<br/>(Groq ➔ Gemini ➔ Rule Rubric)"]:::llmNode
+        K --> L["📊 10 Assessment Dimensions<br/>• Relevance & Completeness<br/>• Technical Depth & Specificity<br/>• Resume Consistency & STAR Structure<br/>• Communication Clarity & Pace"]:::actionNode
+    end
+
+    %% STEP 5: OUTPUTS & REPORTS
+    subgraph S5["  STAGE 5: FEEDBACK & EXPORT  "]
+        L --> M["📈 Interactive Results Dashboard<br/>(Strengths, Weaknesses, Speaking Metrics)"]:::resultNode
+        L --> N["📄 Downloadable PDF Report<br/>(Executive Summary & Action Plan)"]:::resultNode
+    end
+
+    %% INTER-STAGE CONNECTIONS
+    S1 ==> S2
+    S2 ==> S3
+    S3 ==> S4
+    S4 ==> S5
+```
+
+
 
 ---
 
@@ -115,12 +175,14 @@ The container serves on port `7860` and runs as a non-root user with a writable 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GROQ_API_KEY` | No | Recommended (free tier). Enables LLM-powered question generation and follow-ups |
+| `GROQ_API_KEY` | No | Fast inference tier. Enables Groq LLM-powered question generation, follow-ups, and evaluation |
 | `GROQ_MODEL` | No | Override the Groq model (default: `openai/gpt-oss-120b`) |
-| `OPENAI_API_KEY` | No | OpenAI fallback if `GROQ_API_KEY` is not set |
-| `GEMINI_API_KEY` | No | Reserved for future use (not yet implemented) |
+| `GEMINI_API_KEY` | No | Google Gemini API key. Powers high-reasoning question generation, live follow-ups, and answer evaluation |
+| `GEMINI_MODEL` | No | Override the Gemini model (default: `gemini-3.8-flash`) |
+| `OPENAI_API_KEY` | No | OpenAI fallback if other providers are not set |
 | `PORT` | No | Server port (default: 8005 locally, 7860 in Docker) |
 | `HOST` | No | Server host (default: 127.0.0.1) |
+
 
 The application works fully without any API keys. LLM keys enhance question quality but the rule-based fallback provides a complete experience.
 

@@ -85,19 +85,29 @@ def get_rubric_for_category(category: str) -> Dict[str, str]:
 def get_llm_config() -> Optional[Dict[str, str]]:
     """Resolve LLM provider settings from environment variables.
 
-    Supports Groq (OpenAI-compatible) first, then OpenAI.
+    Supports Groq (OpenAI-compatible) first, then Gemini, then OpenAI.
     """
-    groq_key = os.getenv("GROQ_API_KEY")
-    if groq_key:
+    groq_key = os.getenv("GROQ_API_KEY", "").strip()
+    if groq_key and not groq_key.startswith("your_"):
         return {
+            "provider": "groq",
             "api_url": "https://api.groq.com/openai/v1/chat/completions",
             "api_key": groq_key,
             "model": os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
         }
 
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if openai_key:
+    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if gemini_key and not gemini_key.startswith("your_"):
         return {
+            "provider": "gemini",
+            "api_key": gemini_key,
+            "model": os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+        }
+
+    openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if openai_key and not openai_key.startswith("your_"):
+        return {
+            "provider": "openai",
             "api_url": "https://api.openai.com/v1/chat/completions",
             "api_key": openai_key,
             "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
@@ -109,7 +119,7 @@ def get_llm_config() -> Optional[Dict[str, str]]:
 # ── LLM-based Question Generation ─────────────────────────────────────
 
 def generate_questions_with_llm(profile: Dict[str, Any], resume_text: str) -> Optional[List[Dict[str, Any]]]:
-    """Generate questions using an LLM API if available."""
+    """Generate questions using an LLM API (Groq, Gemini, or OpenAI) if available."""
     config = get_llm_config()
     if not config or not requests:
         return None
@@ -145,34 +155,58 @@ For each question, provide a JSON object with:
 Return ONLY a JSON array of objects. No other text."""
 
     try:
-        resp = requests.post(
-            config["api_url"],
-            headers={
-                "Authorization": f"Bearer {config['api_key']}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": config["model"],
-                "messages": [
-                    {"role": "system", "content": "You are a professional interview question generator. Return only valid JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                "max_tokens": 2000,
-                "temperature": 0.7,
-            },
-            timeout=15,
-        )
-        if resp.status_code == 200:
-            content = resp.json()["choices"][0]["message"]["content"].strip()
-            # Extract JSON from possible markdown code block
-            json_match = re.search(r'\[[\s\S]*\]', content)
-            if json_match:
-                questions = json.loads(json_match.group(0))
-                return questions
+        if config.get("provider") == "gemini":
+            models_to_try = [config["model"], "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "systemInstruction": {"parts": [{"text": "You are a professional interview question generator. Return only valid JSON array of objects."}]},
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "responseMimeType": "application/json",
+                    "maxOutputTokens": 2048,
+                },
+            }
+            for m in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={config['api_key']}"
+                try:
+                    resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=20)
+                    if resp.status_code == 200:
+                        content = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        json_match = re.search(r'\[[\s\S]*\]', content)
+                        if json_match:
+                            return json.loads(json_match.group(0))
+                except Exception:
+                    continue
+
+        else:
+            resp = requests.post(
+                config["api_url"],
+                headers={
+                    "Authorization": f"Bearer {config['api_key']}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": config["model"],
+                    "messages": [
+                        {"role": "system", "content": "You are a professional interview question generator. Return only valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 2000,
+                    "temperature": 0.7,
+                },
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                content = resp.json()["choices"][0]["message"]["content"].strip()
+                # Extract JSON from possible markdown code block
+                json_match = re.search(r'\[[\s\S]*\]', content)
+                if json_match:
+                    return json.loads(json_match.group(0))
     except Exception:
         pass
 
     return None
+
 
 
 # ── Fallback Rule-Based Question Generation ────────────────────────────
@@ -349,31 +383,55 @@ Keep it professional, concise (1-2 sentences), and natural.
 Return ONLY the follow-up question text. No quotes, no explanation."""
 
     try:
-        resp = requests.post(
-            config["api_url"],
-            headers={
-                "Authorization": f"Bearer {config['api_key']}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": config["model"],
-                "messages": [
-                    {"role": "system", "content": "You are a professional interviewer. Return only the follow-up question text."},
-                    {"role": "user", "content": prompt}
-                ],
-                "max_tokens": 200,
-                "temperature": 0.7,
-            },
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            content = resp.json()["choices"][0]["message"]["content"].strip()
-            # Clean up any surrounding quotes
-            content = content.strip('"').strip("'")
-            if content and len(content) > 10:
-                return content
+        if config.get("provider") == "gemini":
+            models_to_try = [config["model"], "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest"]
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "systemInstruction": {"parts": [{"text": "You are a professional interviewer. Return only the follow-up question text."}]},
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "maxOutputTokens": 200,
+                },
+            }
+            for m in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={config['api_key']}"
+                try:
+                    resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=12)
+                    if resp.status_code == 200:
+                        content = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        content = content.strip('"').strip("'")
+                        if content and len(content) > 10:
+                            return content
+                except Exception:
+                    continue
+
+        else:
+            resp = requests.post(
+                config["api_url"],
+                headers={
+                    "Authorization": f"Bearer {config['api_key']}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": config["model"],
+                    "messages": [
+                        {"role": "system", "content": "You are a professional interviewer. Return only the follow-up question text."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 200,
+                    "temperature": 0.7,
+                },
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                content = resp.json()["choices"][0]["message"]["content"].strip()
+                # Clean up any surrounding quotes
+                content = content.strip('"').strip("'")
+                if content and len(content) > 10:
+                    return content
     except Exception:
         pass
+
 
     return None
 
