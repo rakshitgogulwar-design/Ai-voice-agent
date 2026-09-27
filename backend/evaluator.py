@@ -49,6 +49,17 @@ def _groq_config() -> Optional[Dict[str, str]]:
     }
 
 
+def _gemini_config() -> Optional[Dict[str, str]]:
+    """Return Google Gemini configuration when a key is available."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key or api_key.startswith("your_"):
+        return None
+    return {
+        "api_key": api_key,
+        "model": os.getenv("GEMINI_MODEL", "gemini-3.8-flash"),
+    }
+
+
 def _extract_json_object(content: str) -> Optional[Dict[str, Any]]:
     """Read a JSON object even if a provider wraps it in a code fence."""
     match = re.search(r'\{[\s\S]*\}', content)
@@ -59,6 +70,30 @@ def _extract_json_object(content: str) -> Optional[Dict[str, Any]]:
         return value if isinstance(value, dict) else None
     except json.JSONDecodeError:
         return None
+
+
+def _parse_scored_result(result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Validate and format scored dimensions, strengths, improvements, and suggested structure."""
+    raw_scores = {item.get("dimension"): item for item in result.get("scores", []) if isinstance(item, dict)}
+    if any(dimension not in raw_scores for dimension in DISPLAY_DIMENSIONS):
+        return None
+    scores = []
+    for dimension in DISPLAY_DIMENSIONS:
+        item = raw_scores[dimension]
+        try:
+            score = round(max(1.0, min(5.0, float(item.get("score", 0)))) * 2) / 2
+        except (TypeError, ValueError):
+            return None
+        evidence = str(item.get("evidence", "")).strip()
+        if not evidence:
+            return None
+        scores.append({"dimension": dimension, "score": score, "max_score": 5.0, "evidence": evidence})
+    return {
+        "scores": scores,
+        "strengths": [str(value) for value in result.get("strengths", [])[:3] if str(value).strip()],
+        "improvements": [str(value) for value in result.get("improvements", [])[:3] if str(value).strip()],
+        "suggested_answer_structure": str(result.get("suggested_answer_structure", "")).strip(),
+    }
 
 
 def score_answer_with_groq(
@@ -120,29 +155,99 @@ Provide exactly one score for every listed dimension. Use 1.0-5.0 in 0.5 increme
         result = _extract_json_object(content)
         if not result:
             return None
-
-        raw_scores = {item.get("dimension"): item for item in result.get("scores", []) if isinstance(item, dict)}
-        if any(dimension not in raw_scores for dimension in DISPLAY_DIMENSIONS):
-            return None
-        scores = []
-        for dimension in DISPLAY_DIMENSIONS:
-            item = raw_scores[dimension]
-            try:
-                score = round(max(1.0, min(5.0, float(item.get("score", 0)))) * 2) / 2
-            except (TypeError, ValueError):
-                return None
-            evidence = str(item.get("evidence", "")).strip()
-            if not evidence:
-                return None
-            scores.append({"dimension": dimension, "score": score, "max_score": 5.0, "evidence": evidence})
-        return {
-            "scores": scores,
-            "strengths": [str(value) for value in result.get("strengths", [])[:3] if str(value).strip()],
-            "improvements": [str(value) for value in result.get("improvements", [])[:3] if str(value).strip()],
-            "suggested_answer_structure": str(result.get("suggested_answer_structure", "")).strip(),
-        }
+        return _parse_scored_result(result)
     except (requests.RequestException, KeyError, TypeError, ValueError):
         return None
+
+
+def score_answer_with_gemini(
+    question: str,
+    answer: str,
+    category: str,
+    profile: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """Score one answer against the actual question and resume using Google Gemini."""
+    config = _gemini_config()
+    if not config or not requests:
+        return None
+
+    resume_context = json.dumps({
+        "name": profile.get("name", ""),
+        "summary": profile.get("summary", ""),
+        "job_titles": profile.get("job_titles", []),
+        "companies": profile.get("companies", []),
+        "skills": profile.get("skills", []),
+        "tools_and_tech": profile.get("tools_and_tech", []),
+        "projects": profile.get("projects", []),
+        "achievements": profile.get("achievements", []),
+        "measurable_results": profile.get("measurable_results", []),
+    }, default=str)[:6000]
+
+    prompt = f"""You are an evidence-based interview assessor. Assess only the candidate's answer below against the question and supplied resume. Do not infer personality, intelligence, emotion, or any protected characteristic. Do not invent accomplishments or evidence.
+
+QUESTION: {question}
+CATEGORY: {category}
+ANSWER: {answer}
+RESUME FACTS: {resume_context}
+
+Return ONLY valid JSON in this exact shape:
+{{
+  "scores": [{{"dimension":"Relevance|Completeness|Specificity|Structure|Evidence & Examples|Resume Consistency|Technical Depth|Communication Clarity|Conciseness|Overall Readiness", "score": 1.0, "max_score": 5.0, "evidence":"brief, specific reason grounded in the answer or resume"}}],
+  "strengths": ["up to 3 evidence-based strengths"],
+  "improvements": ["up to 3 specific improvements"],
+  "suggested_answer_structure": "one concise, tailored suggestion"
+}}
+
+Provide exactly one score for every listed dimension: Relevance, Completeness, Specificity, Structure, Evidence & Examples, Resume Consistency, Technical Depth, Communication Clarity, Conciseness, Overall Readiness.
+Use 1.0-5.0 in 0.5 increments. For Resume Consistency, use 3.0 when the answer cannot be verified from the supplied resume; do not assume it is true. Quote or clearly point to concrete details from the answer in every evidence field."""
+
+    candidate_models = [
+        config["model"],
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-flash-latest",
+    ]
+    # Deduplicate while preserving order
+    seen_models = set()
+    models_to_try = []
+    for m in candidate_models:
+        if m not in seen_models:
+            seen_models.add(m)
+            models_to_try.append(m)
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "systemInstruction": {"parts": [{"text": "Return only valid JSON. Be evidence-based and calibrated."}]},
+        "generationConfig": {
+            "temperature": 0.1,
+            "responseMimeType": "application/json",
+            "maxOutputTokens": 2048,
+        },
+    }
+
+    for model_name in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={config['api_key']}"
+        try:
+            response = requests.post(
+                url,
+                headers={"Content-Type": "application/json"},
+                json=payload,
+                timeout=25,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                result = _extract_json_object(content)
+                if result:
+                    parsed = _parse_scored_result(result)
+                    if parsed:
+                        return parsed
+        except (requests.RequestException, KeyError, TypeError, ValueError):
+            continue
+
+    return None
+
+
 
 
 def calculate_filler_words(text: str) -> int:
@@ -206,8 +311,7 @@ def score_answer(
     words = answer.split()
     word_count = len(words)
 
-    # Groq is the primary evaluator. Its reasons are tied to this exact
-    # question, answer, and resume rather than to a synthetic score formula.
+    # Groq is evaluated first, with seamless fallback to Google Gemini.
     groq_evaluation = score_answer_with_groq(question, answer, category, profile)
     if groq_evaluation:
         groq_evaluation.update({
@@ -220,6 +324,20 @@ def score_answer(
             "evaluation_source": "groq",
         })
         return groq_evaluation
+
+    # If Groq fails or is not configured, try Gemini
+    gemini_evaluation = score_answer_with_gemini(question, answer, category, profile)
+    if gemini_evaluation:
+        gemini_evaluation.update({
+            "filler_word_count": calculate_filler_words(answer),
+            "repeated_phrases": calculate_repeated_phrases(answer),
+            "speaking_pace": calculate_speaking_pace(word_count, duration_seconds),
+            "word_count": word_count,
+            "has_examples": bool(re.search(r'for example|such as|specifically|for instance|when i|i built|i created|i designed|i implemented|i led|i managed|i developed', answer_lower)),
+            "has_metrics": bool(re.search(r'\d+[%$x]|\d+\.\d+|percent|million|billion|thousand|\d+x\b', answer_lower)),
+            "evaluation_source": "gemini",
+        })
+        return gemini_evaluation
 
     # ── Basic Metrics ──────────────────────────────────────────────
     has_metrics = bool(re.search(r'\d+[%$x]|\d+\.\d+|percent|million|billion|thousand|\d+x\b', answer_lower))
